@@ -17,8 +17,6 @@ const TradingPanel: React.FC = () => {
     getProfitPercentage
   } = useTradingContext();
   
-  const [timer, setTimer] = useState<number>(0);
-  
   const handleTrade = async (direction: 'BUY' | 'SELL') => {
     await placeTrade(direction);
   };
@@ -42,41 +40,41 @@ const TradingPanel: React.FC = () => {
 
   return (
     <div className="bg-trader-dark border border-gray-800 rounded-lg overflow-hidden h-full flex flex-col">
-      <div className="p-4 border-b border-gray-800">
-        <h3 className="text-white font-medium">Negociar</h3>
+      <div className="p-3 border-b border-gray-800">
+        <h3 className="text-white font-medium text-sm">Negociar</h3>
       </div>
       
-      <div className="p-6 flex-1 flex flex-col justify-between">
+      <div className="p-4 flex-1 flex flex-col justify-between">
         <div>
           <div className="mb-6">
-            <label className="block text-gray-400 mb-2">Tempo</label>
-            <div className="flex gap-2 text-sm">
+            <label className="block text-gray-400 mb-2 text-xs">Tempo</label>
+            <div className="flex gap-2 text-xs">
               <button 
                 onClick={() => setExpiry(1)} 
                 className={`flex-1 py-2 rounded-md flex items-center justify-center ${expiryTime === 1 ? 'bg-trader-blue text-white' : 'bg-trader-card text-gray-400'}`}
               >
-                <Clock className="h-4 w-4 mr-1" />
+                <Clock className="h-3 w-3 mr-1" />
                 1M
               </button>
               <button 
                 onClick={() => setExpiry(5)} 
                 className={`flex-1 py-2 rounded-md flex items-center justify-center ${expiryTime === 5 ? 'bg-trader-blue text-white' : 'bg-trader-card text-gray-400'}`}
               >
-                <Clock className="h-4 w-4 mr-1" />
+                <Clock className="h-3 w-3 mr-1" />
                 5M
               </button>
               <button 
                 onClick={() => setExpiry(15)} 
                 className={`flex-1 py-2 rounded-md flex items-center justify-center ${expiryTime === 15 ? 'bg-trader-blue text-white' : 'bg-trader-card text-gray-400'}`}
               >
-                <Clock className="h-4 w-4 mr-1" />
+                <Clock className="h-3 w-3 mr-1" />
                 15M
               </button>
             </div>
           </div>
           
           <div className="mb-6">
-            <label className="block text-gray-400 mb-2">Valor</label>
+            <label className="block text-gray-400 mb-2 text-xs">Valor</label>
             <div className="flex items-center">
               <button 
                 onClick={decreaseAmount}
@@ -102,10 +100,10 @@ const TradingPanel: React.FC = () => {
           </div>
           
           <div className="mb-6">
-            <label className="block text-gray-400 mb-2">Lucro</label>
+            <label className="block text-gray-400 mb-2 text-xs">Lucro</label>
             <div className="flex justify-between items-center bg-trader-card p-3 rounded-md">
-              <span className="text-trader-green font-medium">
-                {formatPercentage(profitPercentage)}
+              <span className="text-trader-green font-medium text-xl">
+                +{profitPercentage}%
               </span>
               <span className="text-white">
                 {formatCurrency(estimatedReturn)}
@@ -114,11 +112,11 @@ const TradingPanel: React.FC = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <button
             onClick={() => handleTrade('BUY')}
             disabled={isLoading}
-            className="green-button rounded-md"
+            className="bg-trader-green hover:bg-green-600 text-white font-bold py-4 rounded-md flex items-center justify-center transition-colors"
           >
             <ArrowUp className="h-5 w-5 mr-2" />
             COMPRAR
@@ -127,7 +125,7 @@ const TradingPanel: React.FC = () => {
           <button
             onClick={() => handleTrade('SELL')}
             disabled={isLoading}
-            className="red-button rounded-md"
+            className="bg-trader-red hover:bg-red-600 text-white font-bold py-4 rounded-md flex items-center justify-center transition-colors"
           >
             <ArrowDown className="h-5 w-5 mr-2" />
             VENDER

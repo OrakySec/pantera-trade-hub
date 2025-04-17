@@ -20,12 +20,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     <div className="flex min-h-screen bg-trader-darker">
       <Sidebar isOpen={showSidebar} toggleSidebar={toggleSidebar} />
       
-      <div className="flex flex-col flex-1">
+      <div 
+        className={`flex flex-col flex-1 transition-all duration-300 ease-in-out ${
+          showSidebar ? 'ml-56' : 'ml-16'
+        }`}
+      >
         <Header toggleSidebar={toggleSidebar} />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto px-4">
           {children}
         </main>
-        <footer className="bg-trader-dark p-4 text-xs text-gray-400">
+        <footer className="bg-trader-dark p-3 text-xs text-gray-400">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span>Suporte: support@panteratrader.com</span>

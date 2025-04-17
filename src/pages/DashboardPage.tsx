@@ -11,16 +11,21 @@ const DashboardPage = () => {
   
   return (
     <MainLayout>
-      <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
-          <TradingChart />
+      <div className="flex flex-col h-full">
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-14rem)]">
+          {/* Trading Chart - Ocupa maior parte do espaço horizontal */}
+          <div className="lg:flex-grow h-[450px] lg:h-full">
+            <TradingChart />
+          </div>
+          
+          {/* Trading Panel - Fixo no lado direito */}
+          <div className="lg:w-[320px] mt-4 lg:mt-0 lg:ml-4">
+            <TradingPanel />
+          </div>
         </div>
         
-        <div className="lg:col-span-1">
-          <TradingPanel />
-        </div>
-        
-        <div className="lg:col-span-4">
+        {/* Open Trades Table */}
+        <div className="mt-4 mb-4">
           <div className="bg-trader-dark border border-gray-800 rounded-lg overflow-hidden">
             <div className="p-4 border-b border-gray-800 flex justify-between items-center">
               <h3 className="text-white font-medium">Operações Abertas ({openTrades.length})</h3>

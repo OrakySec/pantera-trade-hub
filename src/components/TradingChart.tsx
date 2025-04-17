@@ -10,9 +10,10 @@ interface DataPoint {
 }
 
 const TradingChart: React.FC = () => {
-  const { assetPrice, selectedAsset, selectedTimeframe } = useTradingContext();
+  const { assetPrice, selectedAsset, selectedTimeframe, setSelectedTimeframe } = useTradingContext();
   const [data, setData] = useState<DataPoint[]>([]);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [chartType, setChartType] = useState<'line' | 'candle'>('candle');
   const maxPoints = 100;
 
   useEffect(() => {
@@ -51,6 +52,10 @@ const TradingChart: React.FC = () => {
     setData(initialData);
   }, [selectedAsset]);
 
+  const handleTimeframeChange = (timeframe: string) => {
+    setSelectedTimeframe(timeframe);
+  };
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -66,7 +71,7 @@ const TradingChart: React.FC = () => {
 
   return (
     <div className="bg-trader-dark border border-gray-800 rounded-lg overflow-hidden h-full flex flex-col">
-      <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+      <div className="p-3 border-b border-gray-800 flex justify-between items-center">
         <div className="flex items-center">
           <div className="bg-yellow-500 rounded-full h-6 w-6 flex items-center justify-center mr-2">
             <span className="text-xs text-black font-bold">₿</span>
@@ -77,13 +82,43 @@ const TradingChart: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex gap-2">
-          <button className={`px-3 py-1 text-xs rounded ${selectedTimeframe === '5m' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}>5m</button>
-          <button className={`px-3 py-1 text-xs rounded ${selectedTimeframe === '15m' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}>15m</button>
-          <button className={`px-3 py-1 text-xs rounded ${selectedTimeframe === '30m' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}>30m</button>
-          <button className={`px-3 py-1 text-xs rounded ${selectedTimeframe === '1h' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}>1h</button>
-          <button className={`px-3 py-1 text-xs rounded ${selectedTimeframe === '4h' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}>4h</button>
-          <button className={`px-3 py-1 text-xs rounded ${selectedTimeframe === '1d' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}>1d</button>
+        <div className="flex gap-1 text-xs">
+          <button 
+            onClick={() => handleTimeframeChange('5m')} 
+            className={`px-3 py-1 rounded ${selectedTimeframe === '5m' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
+          >
+            5m
+          </button>
+          <button 
+            onClick={() => handleTimeframeChange('15m')} 
+            className={`px-3 py-1 rounded ${selectedTimeframe === '15m' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
+          >
+            15m
+          </button>
+          <button 
+            onClick={() => handleTimeframeChange('30m')} 
+            className={`px-3 py-1 rounded ${selectedTimeframe === '30m' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
+          >
+            30m
+          </button>
+          <button 
+            onClick={() => handleTimeframeChange('1h')} 
+            className={`px-3 py-1 rounded ${selectedTimeframe === '1h' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
+          >
+            1h
+          </button>
+          <button 
+            onClick={() => handleTimeframeChange('4h')} 
+            className={`px-3 py-1 rounded ${selectedTimeframe === '4h' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
+          >
+            4h
+          </button>
+          <button 
+            onClick={() => handleTimeframeChange('1d')} 
+            className={`px-3 py-1 rounded ${selectedTimeframe === '1d' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
+          >
+            1d
+          </button>
         </div>
       </div>
       
@@ -91,7 +126,7 @@ const TradingChart: React.FC = () => {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
-            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+            margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis 
@@ -124,17 +159,26 @@ const TradingChart: React.FC = () => {
         </ResponsiveContainer>
       </div>
       
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-2 border-t border-gray-800">
         <div className="flex justify-between items-center">
           <div>
             <span className="text-xs text-gray-400">Último preço</span>
             <h4 className="text-white font-bold">{formatNumber(assetPrice)}</h4>
           </div>
           
-          <div className="flex gap-2">
-            <button className="bg-gray-700 px-3 py-1 rounded text-xs text-white">Linhas</button>
-            <button className="bg-gray-700 px-3 py-1 rounded text-xs text-white">Velas</button>
-            <button className="bg-gray-700 px-3 py-1 rounded text-xs text-white">Indicadores</button>
+          <div className="flex gap-1 text-xs">
+            <button 
+              onClick={() => setChartType('line')}
+              className={`bg-gray-700 px-3 py-1 rounded text-xs ${chartType === 'line' ? 'text-white' : 'text-gray-400'}`}
+            >
+              Linhas
+            </button>
+            <button 
+              onClick={() => setChartType('candle')}
+              className={`bg-gray-700 px-3 py-1 rounded text-xs ${chartType === 'candle' ? 'text-white' : 'text-gray-400'}`}
+            >
+              Velas
+            </button>
           </div>
         </div>
       </div>
