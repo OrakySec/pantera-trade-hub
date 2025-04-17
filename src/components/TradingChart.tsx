@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useTradingContext } from '@/contexts/TradingContext';
+import { Minus, Plus } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -9,7 +10,7 @@ declare global {
 }
 
 const TradingChart: React.FC = () => {
-  const { selectedAsset, selectedTimeframe, setSelectedTimeframe } = useTradingContext();
+  const { selectedAsset, selectedTimeframe, setSelectedTimeframe, assetPrice, tradeAmount, setTradeAmount } = useTradingContext();
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<any>(null);
 
@@ -67,7 +68,7 @@ const TradingChart: React.FC = () => {
       theme: "dark",
       style: "1",
       locale: "br",
-      toolbar_bg: "#1A1F2C",
+      toolbar_bg: "#111827",
       enable_publishing: false,
       hide_top_toolbar: false,
       hide_legend: false,
@@ -84,7 +85,7 @@ const TradingChart: React.FC = () => {
         "mainSeriesProperties.candleStyle.borderDownColor": "#f23645",
         "mainSeriesProperties.candleStyle.wickUpColor": "#0ECB81",
         "mainSeriesProperties.candleStyle.wickDownColor": "#f23645",
-        "paneProperties.background": "#1A1F2C",
+        "paneProperties.background": "#111827",
         "paneProperties.vertGridProperties.color": "rgba(255, 255, 255, 0.05)",
         "paneProperties.horzGridProperties.color": "rgba(255, 255, 255, 0.05)",
       }
@@ -93,13 +94,14 @@ const TradingChart: React.FC = () => {
 
   const mapTimeframeToInterval = (timeframe: string): string => {
     switch (timeframe) {
+      case '1m': return '1';
       case '5m': return '5';
       case '15m': return '15';
       case '30m': return '30';
       case '1h': return '60';
       case '4h': return '240';
       case '1d': return 'D';
-      default: return '30';
+      default: return '1';
     }
   };
 
@@ -107,59 +109,97 @@ const TradingChart: React.FC = () => {
     setSelectedTimeframe(timeframe);
   };
 
+  const increaseAmount = () => {
+    setTradeAmount(tradeAmount + 10);
+  };
+  
+  const decreaseAmount = () => {
+    if (tradeAmount > 10) {
+      setTradeAmount(tradeAmount - 10);
+    }
+  };
+
   return (
-    <div className="bg-trader-dark border border-gray-800 rounded-lg overflow-hidden h-full flex flex-col">
-      <div className="p-3 border-b border-gray-800 flex justify-between items-center">
-        <div className="flex items-center">
-          <div className="bg-yellow-500 rounded-full h-6 w-6 flex items-center justify-center mr-2">
-            <span className="text-xs text-black font-bold">₿</span>
-          </div>
-          <div>
-            <h3 className="text-white font-bold">{selectedAsset.symbol}</h3>
-            <p className="text-xs text-gray-400">{selectedAsset.name} • {selectedAsset.type}</p>
-          </div>
+    <div className="bg-[#111827] border-none overflow-hidden h-full flex flex-col relative">
+      <div className="absolute top-0 left-0 h-10 flex items-center z-10 bg-[#111827] text-white p-2">
+        <div className="bg-yellow-500 rounded-full h-6 w-6 flex items-center justify-center mr-2">
+          <span className="text-xs text-black font-bold">₿</span>
         </div>
-        
-        <div className="flex gap-1 text-xs">
-          <button 
-            onClick={() => handleTimeframeChange('5m')} 
-            className={`px-3 py-1 rounded ${selectedTimeframe === '5m' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
-          >
-            5m
-          </button>
-          <button 
-            onClick={() => handleTimeframeChange('15m')} 
-            className={`px-3 py-1 rounded ${selectedTimeframe === '15m' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
-          >
-            15m
-          </button>
-          <button 
-            onClick={() => handleTimeframeChange('30m')} 
-            className={`px-3 py-1 rounded ${selectedTimeframe === '30m' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
-          >
-            30m
-          </button>
-          <button 
-            onClick={() => handleTimeframeChange('1h')} 
-            className={`px-3 py-1 rounded ${selectedTimeframe === '1h' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
-          >
-            1h
-          </button>
-          <button 
-            onClick={() => handleTimeframeChange('4h')} 
-            className={`px-3 py-1 rounded ${selectedTimeframe === '4h' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
-          >
-            4h
-          </button>
-          <button 
-            onClick={() => handleTimeframeChange('1d')} 
-            className={`px-3 py-1 rounded ${selectedTimeframe === '1d' ? 'bg-gray-700 text-white' : 'text-gray-400'}`}
-          >
-            1d
-          </button>
+        <div>
+          <h3 className="text-white font-bold">{selectedAsset.symbol}</h3>
+          <p className="text-xs text-gray-400">{selectedAsset.name} • {selectedAsset.type}</p>
         </div>
       </div>
-      
+
+      <div className="absolute top-0 right-0 z-10 flex flex-col gap-3 p-4">
+        <div>
+          <div className="text-white text-xs mb-1 text-right">Tempo</div>
+          <div className="flex bg-[#1a1f2c] rounded-md">
+            <button
+              onClick={() => handleTimeframeChange('1m')}
+              className="h-8 w-16 flex items-center justify-center"
+            >
+              <span className={`text-xs ${selectedTimeframe === '1m' ? 'text-white' : 'text-gray-400'}`}>1M</span>
+            </button>
+            <div className="flex flex-col justify-center">
+              <button
+                onClick={decreaseAmount}
+                className="h-4 w-8 flex items-center justify-center"
+              >
+                <Minus className="h-3 w-3 text-gray-400" />
+              </button>
+              <button
+                onClick={increaseAmount}
+                className="h-4 w-8 flex items-center justify-center"
+              >
+                <Plus className="h-3 w-3 text-gray-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-white text-xs mb-1 text-right">Valor</div>
+          <div className="flex bg-[#1a1f2c] rounded-md">
+            <div className="h-8 w-16 flex items-center justify-center">
+              <span className="text-xs text-gray-400">R$</span>
+              <span className="text-xs text-white ml-1">{tradeAmount}</span>
+            </div>
+            <div className="flex flex-col justify-center">
+              <button
+                onClick={decreaseAmount}
+                className="h-4 w-8 flex items-center justify-center"
+              >
+                <Minus className="h-3 w-3 text-gray-400" />
+              </button>
+              <button
+                onClick={increaseAmount}
+                className="h-4 w-8 flex items-center justify-center"
+              >
+                <Plus className="h-3 w-3 text-gray-400" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-white text-xs mb-1 text-right">Lucro</div>
+          <div className="px-4 py-2 bg-[#1a1f2c] rounded-md flex justify-center items-center">
+            <div className="flex flex-col items-center">
+              <span className="text-[#0ECB81] text-sm">+86%</span>
+              <span className="text-white text-xs">R$ 17,20</span>
+            </div>
+          </div>
+        </div>
+
+        <button className="mt-2 bg-[#0ECB81] text-white px-6 py-3 rounded-md font-bold hover:bg-opacity-90 transition-all">
+          COMPRAR
+        </button>
+        <button className="bg-[#ea384c] text-white px-6 py-3 rounded-md font-bold hover:bg-opacity-90 transition-all">
+          VENDER
+        </button>
+      </div>
+
       <div className="flex-1" id="tradingview_chart" ref={containerRef}></div>
     </div>
   );
