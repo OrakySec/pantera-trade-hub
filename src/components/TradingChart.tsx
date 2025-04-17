@@ -30,7 +30,9 @@ const TradingChart: React.FC = () => {
       if (widgetRef.current) {
         try {
           // Limpar o widget quando o componente é desmontado
-          containerRef.current?.innerHTML = '';
+          if (containerRef.current) {
+            containerRef.current.innerHTML = '';
+          }
           widgetRef.current = null;
         } catch (error) {
           console.error('Erro ao limpar o widget TradingView:', error);
