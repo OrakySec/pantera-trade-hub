@@ -1,72 +1,108 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTradingContext } from '@/contexts/TradingContext';
-import { formatNumber } from '@/lib/utils';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
-interface DataPoint {
-  time: string;
-  price: number;
+declare global {
+  interface Window {
+    TradingView: any;
+  }
 }
 
 const TradingChart: React.FC = () => {
-  const { assetPrice, selectedAsset, selectedTimeframe, setSelectedTimeframe } = useTradingContext();
-  const [data, setData] = useState<DataPoint[]>([]);
-  const [lastUpdate, setLastUpdate] = useState(Date.now());
-  const [chartType, setChartType] = useState<'line' | 'candle'>('candle');
-  const maxPoints = 100;
+  const { selectedAsset, selectedTimeframe, setSelectedTimeframe } = useTradingContext();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<any>(null);
 
   useEffect(() => {
-    // Adicionar um novo ponto a cada X segundos
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString();
-    
-    setData(prevData => {
-      const newData = [...prevData, { time: timeStr, price: assetPrice }];
-      
-      // Manter apenas os últimos N pontos
-      if (newData.length > maxPoints) {
-        return newData.slice(newData.length - maxPoints);
-      }
-      
-      return newData;
-    });
-    
-    setLastUpdate(Date.now());
-  }, [assetPrice]);
-
-  // Inicializar dados
-  useEffect(() => {
-    // Reset chart data when asset changes
-    const initialData: DataPoint[] = [];
-    const now = Date.now();
-    
-    for (let i = 0; i < 20; i++) {
-      const time = new Date(now - (20 - i) * 1000);
-      initialData.push({
-        time: time.toLocaleTimeString(),
-        price: assetPrice * (1 + (Math.random() - 0.5) * 0.01),
-      });
+    // Carrega o script da TradingView se ainda não estiver carregado
+    if (!document.getElementById('tradingview-widget-script')) {
+      const script = document.createElement('script');
+      script.id = 'tradingview-widget-script';
+      script.src = 'https://s3.tradingview.com/tv.js';
+      script.async = true;
+      script.onload = initializeWidget;
+      document.head.appendChild(script);
+    } else {
+      initializeWidget();
     }
-    
-    setData(initialData);
-  }, [selectedAsset]);
+
+    return () => {
+      if (widgetRef.current) {
+        try {
+          // Limpar o widget quando o componente é desmontado
+          containerRef.current?.innerHTML = '';
+          widgetRef.current = null;
+        } catch (error) {
+          console.error('Erro ao limpar o widget TradingView:', error);
+        }
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Recriar o widget quando o ativo muda
+    if (window.TradingView && widgetRef.current) {
+      initializeWidget();
+    }
+  }, [selectedAsset, selectedTimeframe]);
+
+  const initializeWidget = () => {
+    if (!containerRef.current || !window.TradingView) return;
+
+    // Limpar o container antes de criar um novo widget
+    containerRef.current.innerHTML = '';
+
+    // Mapear o timeframe selecionado para o formato do TradingView
+    const interval = mapTimeframeToInterval(selectedTimeframe);
+
+    // Criar o widget da TradingView
+    widgetRef.current = new window.TradingView.widget({
+      container_id: containerRef.current.id,
+      autosize: true,
+      symbol: selectedAsset.symbol.replace('/', ':'),
+      interval: interval,
+      timezone: "America/Sao_Paulo",
+      theme: "dark",
+      style: "1",
+      locale: "br",
+      toolbar_bg: "#1A1F2C",
+      enable_publishing: false,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      save_image: false,
+      show_popup_button: true,
+      withdateranges: true,
+      hide_side_toolbar: false,
+      allow_symbol_change: true,
+      studies: ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"],
+      overrides: {
+        "mainSeriesProperties.candleStyle.upColor": "#0ECB81",
+        "mainSeriesProperties.candleStyle.downColor": "#f23645",
+        "mainSeriesProperties.candleStyle.borderUpColor": "#0ECB81",
+        "mainSeriesProperties.candleStyle.borderDownColor": "#f23645",
+        "mainSeriesProperties.candleStyle.wickUpColor": "#0ECB81",
+        "mainSeriesProperties.candleStyle.wickDownColor": "#f23645",
+        "paneProperties.background": "#1A1F2C",
+        "paneProperties.vertGridProperties.color": "rgba(255, 255, 255, 0.05)",
+        "paneProperties.horzGridProperties.color": "rgba(255, 255, 255, 0.05)",
+      }
+    });
+  };
+
+  const mapTimeframeToInterval = (timeframe: string): string => {
+    switch (timeframe) {
+      case '5m': return '5';
+      case '15m': return '15';
+      case '30m': return '30';
+      case '1h': return '60';
+      case '4h': return '240';
+      case '1d': return 'D';
+      default: return '30';
+    }
+  };
 
   const handleTimeframeChange = (timeframe: string) => {
     setSelectedTimeframe(timeframe);
-  };
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-trader-card p-2 rounded border border-gray-700 text-xs">
-          <p>{`Preço: ${formatNumber(payload[0].value)}`}</p>
-          <p>{`Hora: ${payload[0].payload.time}`}</p>
-        </div>
-      );
-    }
-    
-    return null;
   };
 
   return (
@@ -122,66 +158,7 @@ const TradingChart: React.FC = () => {
         </div>
       </div>
       
-      <div className="flex-1 candlestick-chart">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={data}
-            margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-            <XAxis 
-              dataKey="time" 
-              stroke="#666" 
-              tick={{ fill: '#888', fontSize: 10 }} 
-              tickLine={{ stroke: '#666' }}
-              axisLine={{ stroke: '#666' }}
-              minTickGap={30}
-            />
-            <YAxis 
-              domain={['auto', 'auto']}
-              stroke="#666" 
-              tick={{ fill: '#888', fontSize: 10 }} 
-              tickLine={{ stroke: '#666' }}
-              axisLine={{ stroke: '#666' }}
-              tickFormatter={(value) => `${formatNumber(value)}`}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Line 
-              type="monotone" 
-              dataKey="price" 
-              stroke="#0ECB81" 
-              strokeWidth={2}
-              dot={false}
-              animationDuration={300}
-            />
-            <ReferenceLine y={assetPrice} stroke="#fff" strokeDasharray="3 3" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      
-      <div className="p-2 border-t border-gray-800">
-        <div className="flex justify-between items-center">
-          <div>
-            <span className="text-xs text-gray-400">Último preço</span>
-            <h4 className="text-white font-bold">{formatNumber(assetPrice)}</h4>
-          </div>
-          
-          <div className="flex gap-1 text-xs">
-            <button 
-              onClick={() => setChartType('line')}
-              className={`bg-gray-700 px-3 py-1 rounded text-xs ${chartType === 'line' ? 'text-white' : 'text-gray-400'}`}
-            >
-              Linhas
-            </button>
-            <button 
-              onClick={() => setChartType('candle')}
-              className={`bg-gray-700 px-3 py-1 rounded text-xs ${chartType === 'candle' ? 'text-white' : 'text-gray-400'}`}
-            >
-              Velas
-            </button>
-          </div>
-        </div>
-      </div>
+      <div className="flex-1" id="tradingview_chart" ref={containerRef}></div>
     </div>
   );
 };

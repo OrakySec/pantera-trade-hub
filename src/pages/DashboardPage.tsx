@@ -25,7 +25,7 @@ const DashboardPage = () => {
         </div>
         
         {/* Open Trades Table */}
-        <div className="mt-4 mb-4">
+        <div className="mt-4">
           <div className="bg-trader-dark border border-gray-800 rounded-lg overflow-hidden">
             <div className="p-4 border-b border-gray-800 flex justify-between items-center">
               <h3 className="text-white font-medium">Operações Abertas ({openTrades.length})</h3>
