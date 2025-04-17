@@ -53,32 +53,32 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             alt="Pantera Trader Logo" 
             className="h-10 w-10 object-contain"
           />
-          {isOpen && <span className="ml-2 text-white font-bold">Pantera Trader</span>}
+          {isOpen && <span className="ml-3 text-white font-bold">Pantera Trader</span>}
         </div>
         <button
           onClick={toggleSidebar}
-          className="text-gray-400 hover:text-white"
+          className="text-gray-400 hover:text-white text-2xl"
         >
           {isOpen ? "×" : "≡"}
         </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4">
-        <ul className="space-y-1">
+        <ul className="space-y-2">
           {menuItems.map((item) => (
-            <li key={item.path}>
+            <li key={item.path} className="px-2">
               <Link
                 to={item.path}
                 className={cn(
-                  "flex items-center p-4 text-sm transition-colors",
+                  "flex items-center p-3 text-sm transition-colors rounded-md group",
                   location.pathname === item.path
                     ? "bg-trader-card text-trader-green border-l-2 border-trader-green"
                     : "text-gray-400 hover:bg-trader-card hover:text-white",
                   !isOpen && "justify-center"
                 )}
               >
-                <item.icon className="h-5 w-5" />
-                {isOpen && <span className="ml-3">{item.label}</span>}
+                <item.icon className="h-5 w-5 mr-3 group-hover:text-white" />
+                {isOpen && <span className="truncate">{item.label}</span>}
               </Link>
             </li>
           ))}
@@ -103,3 +103,4 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
 };
 
 export default Sidebar;
+
