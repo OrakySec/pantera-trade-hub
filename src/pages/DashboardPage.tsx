@@ -1,12 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import MainLayout from '@/components/MainLayout';
 import TradingChart from '@/components/TradingChart';
+import TradeDetails from '@/components/TradeDetails';
 import { useTradingContext } from '@/contexts/TradingContext';
 import { formatCurrency, formatDatetime } from '@/lib/utils';
+import { Info } from 'lucide-react';
 
 const DashboardPage = () => {
   const { openTrades } = useTradingContext();
+  const [selectedTrade, setSelectedTrade] = useState(null);
+  const [showTradeDetails, setShowTradeDetails] = useState(false);
+  
+  const handleShowTradeDetails = (trade: any) => {
+    setSelectedTrade(trade);
+    setShowTradeDetails(true);
+  };
   
   return (
     <MainLayout>
@@ -30,8 +39,7 @@ const DashboardPage = () => {
                   </div>
                   <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
                     <span>Tempo</span>
-                    <span className="text
--white">{openTrades[0].expiryTime}M</span>
+                    <span className="text-white">{openTrades[0].expiryTime}M</span>
                   </div>
                   <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
                     <span>Fechar</span>
@@ -49,18 +57,11 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="bg-gray-700 p-1 rounded">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M19 9H5C3.89543 9 3 9.89543 3 11V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V11C21 9.89543 20.1046 9 19 9Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M7 9V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                  <button className="bg-gray-700 p-1 rounded">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M19 13C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11C18.4477 11 18 11.4477 18 12C18 12.5523 18.4477 13 19 13Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M5 13C5.55228 13 6 12.5523 6 12C6 11.4477 5.55228 11 5 11C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                  <button 
+                    className="bg-gray-700 p-1 rounded hover:bg-gray-600 transition-colors"
+                    onClick={() => handleShowTradeDetails(openTrades[0])}
+                  >
+                    <Info className="h-5 w-5 text-white" />
                   </button>
                 </div>
               </div>
@@ -72,6 +73,13 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+      
+      {/* Dialog de detalhes da operação */}
+      <TradeDetails 
+        trade={selectedTrade} 
+        isOpen={showTradeDetails} 
+        onClose={() => setShowTradeDetails(false)}
+      />
     </MainLayout>
   );
 };

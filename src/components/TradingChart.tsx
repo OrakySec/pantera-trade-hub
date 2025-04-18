@@ -1,7 +1,9 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTradingContext } from '@/contexts/TradingContext';
 import { Minus, Plus } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
+import { toast } from 'sonner';
 
 declare global {
   interface Window {
@@ -10,9 +12,28 @@ declare global {
 }
 
 const TradingChart: React.FC = () => {
-  const { selectedAsset, selectedTimeframe, setSelectedTimeframe, assetPrice, tradeAmount, setTradeAmount } = useTradingContext();
+  const { 
+    selectedAsset, 
+    selectedTimeframe, 
+    setSelectedTimeframe, 
+    assetPrice, 
+    tradeAmount, 
+    setTradeAmount,
+    expiryTime,
+    setExpiryTime,
+    getEstimatedReturn,
+    placeTrade,
+    getTradeMarkers
+  } = useTradingContext();
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<any>(null);
+  const [estimatedProfit, setEstimatedProfit] = useState(getEstimatedReturn(tradeAmount));
+
+  useEffect(() => {
+    // Atualizar o lucro estimado quando o valor da operação muda
+    setEstimatedProfit(getEstimatedReturn(tradeAmount));
+  }, [tradeAmount, getEstimatedReturn]);
 
   useEffect(() => {
     // Carrega o script da TradingView se ainda não estiver carregado
@@ -43,11 +64,97 @@ const TradingChart: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Recriar o widget quando o ativo muda
+    // Recriar o widget quando o ativo ou timeframe muda
     if (window.TradingView && widgetRef.current) {
       initializeWidget();
     }
   }, [selectedAsset, selectedTimeframe]);
+  
+  const addMarkersToChart = () => {
+    if (!widgetRef.current) return;
+    
+    try {
+      // Obter as operações para marcar no gráfico
+      const markers = getTradeMarkers();
+      
+      // Limpar marcadores existentes
+      widgetRef.current.activeChart().executeActionById('drawingClear');
+      
+      markers.forEach(trade => {
+        // Converter a data de criação para timestamp (milissegundos)
+        const createdTime = new Date(trade.createdAt).getTime();
+        
+        // Calcular o tempo de expiração
+        const expiryTime = createdTime + (trade.expiryTime * 60 * 1000);
+        
+        // Adicionar uma linha vertical no momento da entrada
+        widgetRef.current.activeChart().createMultipointShape([
+          { time: createdTime, price: trade.entryPrice },
+          { time: createdTime, price: trade.entryPrice * 1.05 } // Linha vertical
+        ], {
+          shape: "vertical_line",
+          lock: true,
+          disableSelection: true,
+          disableSave: true,
+          disableUndo: true,
+          overrides: {
+            linecolor: trade.direction === 'BUY' ? '#0ECB81' : '#ea384c',
+            linewidth: 2,
+            linestyle: 0,
+            showLabel: true,
+            text: `${trade.direction === 'BUY' ? '⬆️ COMPRA' : '⬇️ VENDA'} - R$${trade.amount}`,
+            textcolor: trade.direction === 'BUY' ? '#0ECB81' : '#ea384c',
+            fontsize: 12,
+            backgroundColor: '#111827'
+          }
+        });
+        
+        // Se a operação já foi fechada, mostrar o resultado
+        if (trade.status !== 'OPEN' && trade.closePrice) {
+          // Adicionar uma linha vertical no momento do fechamento
+          widgetRef.current.activeChart().createMultipointShape([
+            { time: expiryTime, price: trade.closePrice },
+            { time: expiryTime, price: trade.closePrice * 1.05 } // Linha vertical
+          ], {
+            shape: "vertical_line",
+            lock: true,
+            disableSelection: true,
+            disableSave: true,
+            disableUndo: true,
+            overrides: {
+              linecolor: trade.status === 'WON' ? '#0ECB81' : '#ea384c',
+              linewidth: 2,
+              linestyle: 0,
+              showLabel: true,
+              text: `${trade.status === 'WON' ? '✅ GANHO' : '❌ PERDA'} - ${trade.status === 'WON' ? '+' : ''}${trade.profitPercentage}%`,
+              textcolor: trade.status === 'WON' ? '#0ECB81' : '#ea384c',
+              fontsize: 12,
+              backgroundColor: '#111827'
+            }
+          });
+          
+          // Desenhar uma linha conectando entrada e saída
+          widgetRef.current.activeChart().createMultipointShape([
+            { time: createdTime, price: trade.entryPrice },
+            { time: expiryTime, price: trade.closePrice }
+          ], {
+            shape: "trend_line",
+            lock: true,
+            disableSelection: true,
+            disableSave: true,
+            disableUndo: true,
+            overrides: {
+              linecolor: trade.status === 'WON' ? '#0ECB81' : '#ea384c',
+              linewidth: 1,
+              linestyle: 2, // linha tracejada
+            }
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar marcadores ao gráfico:', error);
+    }
+  };
 
   const initializeWidget = () => {
     if (!containerRef.current || !window.TradingView) return;
@@ -90,6 +197,11 @@ const TradingChart: React.FC = () => {
         "paneProperties.horzGridProperties.color": "rgba(255, 255, 255, 0.05)",
       }
     });
+
+    // Quando o gráfico estiver carregado, adicionar os marcadores
+    widgetRef.current.onChartReady(() => {
+      addMarkersToChart();
+    });
   };
 
   const mapTimeframeToInterval = (timeframe: string): string => {
@@ -118,6 +230,18 @@ const TradingChart: React.FC = () => {
       setTradeAmount(tradeAmount - 10);
     }
   };
+  
+  const handleExpiryTimeChange = (time: number) => {
+    setExpiryTime(time);
+  };
+  
+  const handleTrade = async (direction: 'BUY' | 'SELL') => {
+    const success = await placeTrade(direction);
+    if (success) {
+      // Esperar um momento para os dados serem atualizados e então atualizar as marcações
+      setTimeout(addMarkersToChart, 500);
+    }
+  };
 
   return (
     <div className="bg-[#111827] border-none overflow-hidden h-full flex flex-col relative">
@@ -135,24 +259,24 @@ const TradingChart: React.FC = () => {
         <div>
           <div className="text-white text-xs mb-1 text-right">Tempo</div>
           <div className="flex bg-[#1a1f2c] rounded-md">
-            <button
-              onClick={() => handleTimeframeChange('1m')}
-              className="h-8 w-16 flex items-center justify-center"
-            >
-              <span className={`text-xs ${selectedTimeframe === '1m' ? 'text-white' : 'text-gray-400'}`}>1M</span>
-            </button>
-            <div className="flex flex-col justify-center">
+            <div className="h-8 flex items-center justify-center">
               <button
-                onClick={decreaseAmount}
-                className="h-4 w-8 flex items-center justify-center"
+                onClick={() => handleExpiryTimeChange(1)}
+                className={`h-8 w-12 flex items-center justify-center ${expiryTime === 1 ? 'text-white' : 'text-gray-400'}`}
               >
-                <Minus className="h-3 w-3 text-gray-400" />
+                <span className="text-xs">1M</span>
               </button>
               <button
-                onClick={increaseAmount}
-                className="h-4 w-8 flex items-center justify-center"
+                onClick={() => handleExpiryTimeChange(5)}
+                className={`h-8 w-12 flex items-center justify-center ${expiryTime === 5 ? 'text-white' : 'text-gray-400'}`}
               >
-                <Plus className="h-3 w-3 text-gray-400" />
+                <span className="text-xs">5M</span>
+              </button>
+              <button
+                onClick={() => handleExpiryTimeChange(15)}
+                className={`h-8 w-12 flex items-center justify-center ${expiryTime === 15 ? 'text-white' : 'text-gray-400'}`}
+              >
+                <span className="text-xs">15M</span>
               </button>
             </div>
           </div>
@@ -187,15 +311,21 @@ const TradingChart: React.FC = () => {
           <div className="px-4 py-2 bg-[#1a1f2c] rounded-md flex justify-center items-center">
             <div className="flex flex-col items-center">
               <span className="text-[#0ECB81] text-sm">+86%</span>
-              <span className="text-white text-xs">R$ 17,20</span>
+              <span className="text-white text-xs">R$ {estimatedProfit.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
-        <button className="mt-2 bg-[#0ECB81] text-white px-6 py-3 rounded-md font-bold hover:bg-opacity-90 transition-all">
+        <button 
+          onClick={() => handleTrade('BUY')}
+          className="mt-2 bg-[#0ECB81] text-white px-6 py-3 rounded-md font-bold hover:bg-opacity-90 transition-all"
+        >
           COMPRAR
         </button>
-        <button className="bg-[#ea384c] text-white px-6 py-3 rounded-md font-bold hover:bg-opacity-90 transition-all">
+        <button 
+          onClick={() => handleTrade('SELL')}
+          className="bg-[#ea384c] text-white px-6 py-3 rounded-md font-bold hover:bg-opacity-90 transition-all"
+        >
           VENDER
         </button>
       </div>

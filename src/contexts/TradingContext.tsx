@@ -17,6 +17,7 @@ export interface Trade {
   status: 'OPEN' | 'WON' | 'LOST';
   createdAt: string;
   closedAt?: string;
+  chartMarker?: boolean; // Indica se esta operação deve ser marcada no gráfico
 }
 
 interface TradingContextType {
@@ -36,6 +37,7 @@ interface TradingContextType {
   getEstimatedReturn: (amount: number) => number;
   getProfitPercentage: () => number;
   simulatePriceMovement: () => void;
+  getTradeMarkers: () => Trade[]; // Nova função para obter marcadores de operações para o gráfico
 }
 
 const TradingContext = createContext<TradingContextType | null>(null);
@@ -53,7 +55,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [trades, setTrades] = useState<Trade[]>([]);
   const [assetPrice, setAssetPrice] = useState(84421.44); // Preço inicial do BTC/USD
   const [selectedAsset, setSelectedAsset] = useState({ symbol: 'BTC/USD', name: 'Bitcoin', type: 'Crypto' });
-  const [selectedTimeframe, setSelectedTimeframe] = useState('30m');
+  const [selectedTimeframe, setSelectedTimeframe] = useState('1m');
   const [expiryTime, setExpiryTime] = useState(1); // 1 minuto padrão
   const [tradeAmount, setTradeAmount] = useState(20);
   const [isLoading, setIsLoading] = useState(false);
@@ -166,6 +168,20 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const openTrades = trades.filter(trade => trade.status === 'OPEN' && trade.userId === user?.id);
 
+  // Obter operações para marcação no gráfico (operações recentes)
+  const getTradeMarkers = (): Trade[] => {
+    // Retornar operações que devem ser marcadas no gráfico (últimas 10, por exemplo)
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    return trades
+      .filter(trade => 
+        trade.userId === user?.id && 
+        new Date(trade.createdAt) > twentyFourHoursAgo &&
+        trade.asset === selectedAsset.symbol)
+      .slice(0, 10); // Limitar a 10 marcações para não sobrecarregar o gráfico
+  };
+
   const placeTrade = async (direction: 'BUY' | 'SELL'): Promise<boolean> => {
     if (!user) {
       toast.error('Você precisa estar logado para operar');
@@ -199,6 +215,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         expiryTime,
         status: 'OPEN',
         createdAt: new Date().toISOString(),
+        chartMarker: true, // Marcar esta operação no gráfico
       };
       
       const updatedTrades = [...trades, newTrade];
@@ -243,7 +260,8 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     placeTrade,
     getEstimatedReturn,
     getProfitPercentage,
-    simulatePriceMovement
+    simulatePriceMovement,
+    getTradeMarkers
   };
 
   return <TradingContext.Provider value={value}>{children}</TradingContext.Provider>;
