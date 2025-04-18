@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
@@ -37,7 +36,7 @@ interface TradingContextType {
   getEstimatedReturn: (amount: number) => number;
   getProfitPercentage: () => number;
   simulatePriceMovement: () => void;
-  getTradeMarkers: () => Trade[]; // Nova função para obter marcadores de operações para o gráfico
+  getTradeMarkers: () => Trade[];
 }
 
 const TradingContext = createContext<TradingContextType | null>(null);
@@ -53,15 +52,17 @@ export const useTradingContext = () => {
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, updateBalance } = useAuth();
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [assetPrice, setAssetPrice] = useState(84421.44); // Preço inicial do BTC/USD
+  const [assetPrice, setAssetPrice] = useState(84421.44);
   const [selectedAsset, setSelectedAsset] = useState({ symbol: 'BTC/USD', name: 'Bitcoin', type: 'Crypto' });
   const [selectedTimeframe, setSelectedTimeframe] = useState('1m');
-  const [expiryTime, setExpiryTime] = useState(1); // 1 minuto padrão
-  const [tradeAmount, setTradeAmount] = useState(20);
+  const [expiryTime, setExpiryTime] = useState(1);
+  const [tradeAmount, setTradeAmount] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [priceUpdateInterval, setPriceUpdateInterval] = useState<NodeJS.Timeout | null>(null);
+  const [dailyLossLimit, setDailyLossLimit] = useState(0);
+  const [consecutiveLosses, setConsecutiveLosses] = useState(0);
+  const [operationsCount, setOperationsCount] = useState({ count: 0, lastReset: new Date() });
 
-  // Carregar operações do localStorage
   useEffect(() => {
     if (user) {
       const storedTrades = localStorage.getItem(`trades_${user.id}`);
@@ -71,14 +72,11 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [user]);
 
-  // Simular movimento do preço do ativo
   useEffect(() => {
-    // Limpar qualquer intervalo existente
     if (priceUpdateInterval) {
       clearInterval(priceUpdateInterval);
     }
     
-    // Configurar novo intervalo
     const interval = setInterval(() => {
       simulatePriceMovement();
     }, 2000);
@@ -92,7 +90,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [assetPrice, selectedAsset]);
 
-  // Resolver operações em aberto
   useEffect(() => {
     const checkOpenTrades = () => {
       if (!user) return;
@@ -104,27 +101,27 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const expiryTimeInMs = trade.expiryTime * 60 * 1000;
           
           if (now.getTime() - createdAt.getTime() >= expiryTimeInMs) {
-            // A operação expirou, vamos resolver
-            const result = Math.random(); // Simula resultado
+            const result = Math.random();
             let newStatus: 'WON' | 'LOST';
             let closePrice: number;
             let profitLoss: number;
             
             if (result > 0.5) {
               newStatus = 'WON';
-              const winPercentage = 0.86; // 86% de retorno
+              const winPercentage = 0.86;
               profitLoss = trade.amount * winPercentage;
+              setConsecutiveLosses(0);
               
-              // Atualizar saldo do usuário
               if (user) {
                 updateBalance(user.balance + trade.amount + profitLoss);
               }
             } else {
               newStatus = 'LOST';
               profitLoss = -trade.amount;
+              setConsecutiveLosses(prev => prev + 1);
+              setDailyLossLimit(prev => prev + trade.amount);
             }
             
-            // Simular preço de fechamento
             if (trade.direction === 'BUY') {
               closePrice = newStatus === 'WON' ? trade.entryPrice * 1.01 : trade.entryPrice * 0.99;
             } else {
@@ -159,8 +156,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [trades, user, updateBalance]);
 
   const simulatePriceMovement = () => {
-    // Simular movimento de preço baseado no ativo selecionado
-    const volatility = 0.002; // 0.2% de volatilidade
+    const volatility = 0.002;
     const randomMovement = (Math.random() - 0.5) * 2 * volatility;
     const newPrice = assetPrice * (1 + randomMovement);
     setAssetPrice(parseFloat(newPrice.toFixed(2)));
@@ -168,9 +164,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const openTrades = trades.filter(trade => trade.status === 'OPEN' && trade.userId === user?.id);
 
-  // Obter operações para marcação no gráfico (operações recentes)
   const getTradeMarkers = (): Trade[] => {
-    // Retornar operações que devem ser marcadas no gráfico (últimas 10, por exemplo)
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     
@@ -179,7 +173,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         trade.userId === user?.id && 
         new Date(trade.createdAt) > twentyFourHoursAgo &&
         trade.asset === selectedAsset.symbol)
-      .slice(0, 10); // Limitar a 10 marcações para não sobrecarregar o gráfico
+      .slice(0, 10);
   };
 
   const placeTrade = async (direction: 'BUY' | 'SELL'): Promise<boolean> => {
@@ -188,40 +182,53 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return false;
     }
     
-    if (tradeAmount <= 0) {
-      toast.error('Valor da operação inválido');
+    if (tradeAmount < 10) {
+      toast.error('Valor mínimo por operação: R$ 10,00');
       return false;
     }
     
-    if (tradeAmount > user.balance) {
-      toast.error('Saldo insuficiente');
+    if (tradeAmount > 1000 || tradeAmount > user.balance * 0.2) {
+      toast.error('Valor máximo excedido. Limite: R$ 1.000,00 ou 20% do saldo');
       return false;
+    }
+
+    if (dailyLossLimit >= user.balance * 0.5) {
+      toast.error('Limite de perda diária atingido (50% do saldo inicial)');
+      return false;
+    }
+
+    if (consecutiveLosses >= 3) {
+      toast.warning('Atenção: Você teve 3 perdas consecutivas. Considere fazer uma pausa.');
+    }
+
+    if (operationsCount.lastReset < new Date(Date.now() - 30 * 60 * 1000)) {
+      setOperationsCount({ count: 1, lastReset: new Date() });
+    } else if (operationsCount.count >= 10) {
+      toast.warning('Você realizou muitas operações em um curto período. Considere fazer uma pausa.');
     }
     
     try {
       setIsLoading(true);
       
-      // Deduzir o valor da operação do saldo
       updateBalance(user.balance - tradeAmount);
       
-      // Criar nova operação com o ativo selecionado atualmente
       const newTrade: Trade = {
         id: `trade_${Date.now()}`,
         userId: user.id,
-        asset: selectedAsset.symbol, // Usar o ativo selecionado atualmente
+        asset: selectedAsset.symbol,
         amount: tradeAmount,
         direction,
         entryPrice: assetPrice,
         expiryTime,
         status: 'OPEN',
         createdAt: new Date().toISOString(),
-        chartMarker: true, // Marcar esta operação no gráfico
+        chartMarker: true,
       };
       
       const updatedTrades = [...trades, newTrade];
       setTrades(updatedTrades);
+      setOperationsCount(prev => ({ ...prev, count: prev.count + 1 }));
       
-      // Salvar no localStorage
       localStorage.setItem(`trades_${user.id}`, JSON.stringify(updatedTrades));
       
       toast.success(`Operação de ${direction === 'BUY' ? 'COMPRA' : 'VENDA'} realizada com sucesso para ${selectedAsset.symbol}!`);
@@ -241,7 +248,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const getProfitPercentage = (): number => {
-    return 86; // Fixo em 86% para este exemplo
+    return 86;
   };
 
   const value: TradingContextType = {
@@ -263,6 +270,20 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     simulatePriceMovement,
     getTradeMarkers
   };
+
+  useEffect(() => {
+    const resetDailyLimits = () => {
+      const now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 0) {
+        setDailyLossLimit(0);
+        setConsecutiveLosses(0);
+        setOperationsCount({ count: 0, lastReset: now });
+      }
+    };
+
+    const interval = setInterval(resetDailyLimits, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   return <TradingContext.Provider value={value}>{children}</TradingContext.Provider>;
 };

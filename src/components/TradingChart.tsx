@@ -30,12 +30,10 @@ const TradingChart: React.FC = () => {
   const [estimatedProfit, setEstimatedProfit] = useState(getEstimatedReturn(tradeAmount));
 
   useEffect(() => {
-    // Atualizar o lucro estimado quando o valor da operação muda
     setEstimatedProfit(getEstimatedReturn(tradeAmount));
   }, [tradeAmount, getEstimatedReturn]);
 
   useEffect(() => {
-    // Carrega o script da TradingView se ainda não estiver carregado
     if (!document.getElementById('tradingview-widget-script')) {
       const script = document.createElement('script');
       script.id = 'tradingview-widget-script';
@@ -50,7 +48,6 @@ const TradingChart: React.FC = () => {
     return () => {
       if (widgetRef.current) {
         try {
-          // Limpar o widget quando o componente é desmontado
           if (containerRef.current) {
             containerRef.current.innerHTML = '';
           }
@@ -63,7 +60,6 @@ const TradingChart: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Recriar o widget quando o ativo ou timeframe muda
     if (window.TradingView && widgetRef.current) {
       initializeWidget();
     }
@@ -75,8 +71,6 @@ const TradingChart: React.FC = () => {
     try {
       console.log("Tentando adicionar marcadores ao gráfico");
       
-      // Para inserir marcadores, precisamos usar o iframe do widget e executar alguns comandos
-      // Isso é uma solução alternativa já que não podemos usar activeChart() diretamente
       const markers = getTradeMarkers();
       
       if (markers.length === 0) {
@@ -86,21 +80,16 @@ const TradingChart: React.FC = () => {
       
       console.log("Marcadores para adicionar:", markers);
       
-      // Aqui apenas notificamos o usuário que as operações foram marcadas
-      // Isso é uma simulação visual, já que a API gratuita do TradingView tem limitações
       markers.forEach(trade => {
         const direction = trade.direction === 'BUY' ? 'compra' : 'venda';
         const status = trade.status === 'OPEN' ? 'em andamento' : 
                       (trade.status === 'WON' ? 'ganhou' : 'perdeu');
                       
-        // Exibir notificação com detalhes da operação
         if (trade.chartMarker) {
           toast.info(
             `Operação de ${direction.toUpperCase()} ${status.toUpperCase()} marcada no gráfico para ${trade.asset}`, 
             { position: 'bottom-right', duration: 2000 }
           );
-          
-          // Remover a flag depois de exibir a notificação
           trade.chartMarker = false;
         }
       });
@@ -112,13 +101,9 @@ const TradingChart: React.FC = () => {
   const initializeWidget = () => {
     if (!containerRef.current || !window.TradingView) return;
 
-    // Limpar o container antes de criar um novo widget
     containerRef.current.innerHTML = '';
-
-    // Mapear o timeframe selecionado para o formato do TradingView
     const interval = mapTimeframeToInterval(selectedTimeframe);
 
-    // Criar o widget da TradingView
     widgetRef.current = new window.TradingView.widget({
       container_id: containerRef.current.id,
       autosize: true,
@@ -131,13 +116,12 @@ const TradingChart: React.FC = () => {
       toolbar_bg: "#111827",
       enable_publishing: false,
       hide_top_toolbar: false,
-      hide_legend: false,
+      hide_legend: true,
       save_image: false,
       show_popup_button: true,
       withdateranges: true,
       hide_side_toolbar: false,
       allow_symbol_change: true,
-      // Removido o RSI dos estudos
       studies: ["MASimple@tv-basicstudies"],
       overrides: {
         "mainSeriesProperties.candleStyle.upColor": "#0ECB81",
@@ -152,8 +136,6 @@ const TradingChart: React.FC = () => {
       }
     });
 
-    // Quando o gráfico estiver pronto, tentar adicionar os marcadores
-    // Esta é uma solução alternativa pois a API gratuita tem limitações
     setTimeout(() => {
       addMarkersToChart();
     }, 2000);
@@ -175,7 +157,7 @@ const TradingChart: React.FC = () => {
   const handleTimeframeChange = (timeframe: string) => {
     setSelectedTimeframe(timeframe);
   };
-
+  
   const increaseAmount = () => {
     setTradeAmount(tradeAmount + 10);
   };
@@ -193,7 +175,6 @@ const TradingChart: React.FC = () => {
   const handleTrade = async (direction: 'BUY' | 'SELL') => {
     const success = await placeTrade(direction);
     if (success) {
-      // Esperar um momento para os dados serem atualizados e então tentar mostrar os marcadores
       setTimeout(addMarkersToChart, 500);
     }
   };
