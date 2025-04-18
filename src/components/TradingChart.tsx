@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useTradingContext } from '@/contexts/TradingContext';
 import { Minus, Plus } from 'lucide-react';
@@ -200,21 +199,15 @@ const TradingChart: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#111827] border-none overflow-hidden h-full flex flex-col relative">
-      <div className="absolute top-0 left-0 h-10 flex items-center z-10 bg-[#111827] text-white p-2">
-        <div className="bg-yellow-500 rounded-full h-6 w-6 flex items-center justify-center mr-2">
-          <span className="text-xs text-black font-bold">₿</span>
-        </div>
-        <div>
-          <h3 className="text-white font-bold">{selectedAsset.symbol}</h3>
-          <p className="text-xs text-gray-400">{selectedAsset.name} • {selectedAsset.type}</p>
-        </div>
+    <div className="flex h-full">
+      <div className="flex-grow bg-[#111827] border-none overflow-hidden h-full flex flex-col relative">
+        <div className="flex-1" id="tradingview_chart" ref={containerRef}></div>
       </div>
-
-      <div className="absolute top-0 right-0 z-10 flex flex-col gap-3 p-4">
+      
+      <div className="w-80 bg-[#1a1f2c] p-4 flex flex-col space-y-4">
         <div>
           <div className="text-white text-xs mb-1 text-right">Tempo</div>
-          <div className="flex bg-[#1a1f2c] rounded-md">
+          <div className="flex bg-[#111827] rounded-md">
             <div className="h-8 flex items-center justify-center">
               <button
                 onClick={() => handleExpiryTimeChange(1)}
@@ -240,7 +233,7 @@ const TradingChart: React.FC = () => {
 
         <div>
           <div className="text-white text-xs mb-1 text-right">Valor</div>
-          <div className="flex bg-[#1a1f2c] rounded-md">
+          <div className="flex bg-[#111827] rounded-md">
             <div className="h-8 w-16 flex items-center justify-center">
               <span className="text-xs text-gray-400">R$</span>
               <span className="text-xs text-white ml-1">{tradeAmount}</span>
@@ -264,7 +257,7 @@ const TradingChart: React.FC = () => {
 
         <div>
           <div className="text-white text-xs mb-1 text-right">Lucro</div>
-          <div className="px-4 py-2 bg-[#1a1f2c] rounded-md flex justify-center items-center">
+          <div className="px-4 py-2 bg-[#111827] rounded-md flex justify-center items-center">
             <div className="flex flex-col items-center">
               <span className="text-[#0ECB81] text-sm">+86%</span>
               <span className="text-white text-xs">R$ {estimatedProfit.toFixed(2)}</span>
@@ -285,8 +278,6 @@ const TradingChart: React.FC = () => {
           VENDER
         </button>
       </div>
-
-      <div className="flex-1" id="tradingview_chart" ref={containerRef}></div>
     </div>
   );
 };
