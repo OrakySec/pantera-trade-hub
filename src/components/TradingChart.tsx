@@ -97,7 +97,7 @@ const TradingChart: React.FC = () => {
         // Exibir notificação com detalhes da operação
         if (trade.chartMarker) {
           toast.info(
-            `Operação de ${direction.toUpperCase()} ${status.toUpperCase()} marcada no gráfico`, 
+            `Operação de ${direction.toUpperCase()} ${status.toUpperCase()} marcada no gráfico para ${trade.asset}`, 
             { position: 'bottom-right', duration: 2000 }
           );
           
@@ -138,7 +138,8 @@ const TradingChart: React.FC = () => {
       withdateranges: true,
       hide_side_toolbar: false,
       allow_symbol_change: true,
-      studies: ["RSI@tv-basicstudies", "MASimple@tv-basicstudies"],
+      // Removido o RSI dos estudos
+      studies: ["MASimple@tv-basicstudies"],
       overrides: {
         "mainSeriesProperties.candleStyle.upColor": "#0ECB81",
         "mainSeriesProperties.candleStyle.downColor": "#f23645",

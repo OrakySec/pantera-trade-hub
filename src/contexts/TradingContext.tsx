@@ -204,11 +204,11 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Deduzir o valor da operação do saldo
       updateBalance(user.balance - tradeAmount);
       
-      // Criar nova operação
+      // Criar nova operação com o ativo selecionado atualmente
       const newTrade: Trade = {
         id: `trade_${Date.now()}`,
         userId: user.id,
-        asset: selectedAsset.symbol,
+        asset: selectedAsset.symbol, // Usar o ativo selecionado atualmente
         amount: tradeAmount,
         direction,
         entryPrice: assetPrice,
@@ -224,7 +224,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Salvar no localStorage
       localStorage.setItem(`trades_${user.id}`, JSON.stringify(updatedTrades));
       
-      toast.success(`Operação de ${direction === 'BUY' ? 'COMPRA' : 'VENDA'} realizada com sucesso!`);
+      toast.success(`Operação de ${direction === 'BUY' ? 'COMPRA' : 'VENDA'} realizada com sucesso para ${selectedAsset.symbol}!`);
       return true;
     } catch (error) {
       console.error('Erro ao realizar operação:', error);

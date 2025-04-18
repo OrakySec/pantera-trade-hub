@@ -38,45 +38,47 @@ const DashboardPage = () => {
         </div>
         
         {/* Open Trades Table - Na parte inferior */}
-        <div className="h-16 bg-[#111827] border-t border-gray-800">
-          <div className="px-4 h-full flex items-center justify-between">
-            <h3 className="text-white font-medium">Operações Abertas ({openTrades.length})</h3>
+        <div className="max-h-48 overflow-y-auto bg-[#111827] border-t border-gray-800">
+          <div className="px-4 py-2">
+            <h3 className="text-white font-medium mb-2">Operações Abertas ({openTrades.length})</h3>
             
             {openTrades.length > 0 ? (
-              <div className="flex items-center gap-4 overflow-x-auto">
-                {openTrades.map((trade, index) => (
-                  <div key={trade.id} className="flex items-center">
-                    <div className="flex">
-                      <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
-                        <span>Ativo</span>
-                        <span className="text-white">{trade.asset}</span>
+              <div className="flex flex-col gap-2">
+                {openTrades.map((trade) => (
+                  <div key={trade.id} className="bg-[#1a1f2c] rounded-md p-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex gap-4">
+                        <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
+                          <span>Ativo</span>
+                          <span className="text-white">{trade.asset}</span>
+                        </div>
+                        <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
+                          <span>Tempo</span>
+                          <span className="text-white">{trade.expiryTime}M</span>
+                        </div>
+                        <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
+                          <span>Fechar</span>
+                          <span className="text-white">{formatDatetime(trade.createdAt)}</span>
+                        </div>
+                        <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
+                          <span>Abertura</span>
+                          <span className="text-white">{formatCurrency(trade.entryPrice)}</span>
+                        </div>
+                        <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
+                          <span>Ação</span>
+                          <span className={trade.direction === 'BUY' ? 'text-green-500' : 'text-red-500'}>
+                            {trade.direction === 'BUY' ? 'COMPRA' : 'VENDA'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
-                        <span>Tempo</span>
-                        <span className="text-white">{trade.expiryTime}M</span>
+                      <div className="flex items-center">
+                        <button 
+                          className="bg-gray-700 p-1 rounded hover:bg-gray-600 transition-colors"
+                          onClick={() => handleShowTradeDetails(trade)}
+                        >
+                          <Info className="h-5 w-5 text-white" />
+                        </button>
                       </div>
-                      <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
-                        <span>Fechar</span>
-                        <span className="text-white">{formatDatetime(trade.createdAt)}</span>
-                      </div>
-                      <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
-                        <span>Abertura</span>
-                        <span className="text-white">{formatCurrency(trade.entryPrice)}</span>
-                      </div>
-                      <div className="px-3 py-1 text-xs text-gray-400 flex flex-col items-center">
-                        <span>Ação</span>
-                        <span className={trade.direction === 'BUY' ? 'text-green-500' : 'text-red-500'}>
-                          {trade.direction === 'BUY' ? 'COMPRA' : 'VENDA'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        className="bg-gray-700 p-1 rounded hover:bg-gray-600 transition-colors"
-                        onClick={() => handleShowTradeDetails(trade)}
-                      >
-                        <Info className="h-5 w-5 text-white" />
-                      </button>
                     </div>
                   </div>
                 ))}
