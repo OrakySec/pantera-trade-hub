@@ -1,8 +1,24 @@
-import React, { useEffect, useRef } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useTradingContext } from '@/contexts/TradingContext';
 import { useTradingViewWidget } from '@/hooks/useTradingViewWidget';
 import { Minus, Plus } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { toast } from 'sonner';
+
+// Function to map timeframe to interval needs to be defined before usage
+const mapTimeframeToInterval = (timeframe: string): string => {
+  switch (timeframe) {
+    case '1m': return '1';
+    case '5m': return '5';
+    case '15m': return '15';
+    case '30m': return '30';
+    case '1h': return '60';
+    case '4h': return '240';
+    case '1d': return 'D';
+    default: return '1';
+  }
+};
 
 const TradingChart: React.FC = () => {
   const { 
@@ -62,19 +78,6 @@ const TradingChart: React.FC = () => {
       });
     } catch (error) {
       console.error('Erro ao adicionar marcadores ao gráfico:', error);
-    }
-  };
-
-  const mapTimeframeToInterval = (timeframe: string): string => {
-    switch (timeframe) {
-      case '1m': return '1';
-      case '5m': return '5';
-      case '15m': return '15';
-      case '30m': return '30';
-      case '1h': return '60';
-      case '4h': return '240';
-      case '1d': return 'D';
-      default: return '1';
     }
   };
 
