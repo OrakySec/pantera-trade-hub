@@ -36,9 +36,10 @@ const TradingChart: React.FC = () => {
   } = useTradingContext();
   
   const [estimatedProfit, setEstimatedProfit] = useState(getEstimatedReturn(tradeAmount));
+  const chartContainerId = 'tradingview_chart';
   
   const { addMarker } = useTradingViewWidget({
-    container_id: 'tradingview_chart',
+    container_id: chartContainerId,
     symbol: selectedAsset.symbol,
     interval: mapTimeframeToInterval(selectedTimeframe),
     onReady: () => {
@@ -67,7 +68,7 @@ const TradingChart: React.FC = () => {
         if (trade.chartMarker) {
           const direction = trade.direction === 'BUY' ? 'compra' : 'venda';
           const status = trade.status === 'OPEN' ? 'em andamento' : 
-                        (trade.status === 'WON' ? 'ganhou' : 'perdeu');
+                       (trade.status === 'WON' ? 'ganhou' : 'perdeu');
                         
           toast.info(
             `Operação de ${direction.toUpperCase()} ${status.toUpperCase()} marcada no gráfico para ${trade.asset}`, 
@@ -109,7 +110,7 @@ const TradingChart: React.FC = () => {
   return (
     <div className="flex h-full">
       <div className="flex-grow bg-[#111827] border-none overflow-hidden h-full flex flex-col relative">
-        <div className="flex-1" id="tradingview_chart"></div>
+        <div className="flex-1" id={chartContainerId}></div>
       </div>
       
       <div className="w-80 bg-[#1a1f2c] p-4 flex flex-col space-y-4">

@@ -97,9 +97,72 @@ export const useTradingViewWidget = ({
     };
   }, [container_id]);
 
+  // Update symbol and interval when they change
   useEffect(() => {
+    // Only if widget is initialized and ready
     if (widgetRef.current) {
-      widgetRef.current.setSymbol(symbol.replace('/', ':'), interval);
+      try {
+        // We need to wait for widget to be fully loaded
+        const waitForWidget = () => {
+          if (widgetRef.current && widgetRef.current.iframe && widgetRef.current.iframe.contentWindow) {
+            // TradingView might need a moment to initialize its internal API
+            setTimeout(() => {
+              try {
+                // Re-create widget with new symbol instead of using setSymbol
+                const container = document.getElementById(container_id);
+                if (container) {
+                  container.innerHTML = '';
+                }
+                
+                // Initialize the widget again with the new symbol and interval
+                widgetRef.current = new window.TradingView.widget({
+                  container_id,
+                  symbol: symbol.replace('/', ':'),
+                  interval,
+                  timezone: "America/Sao_Paulo",
+                  theme: "dark",
+                  style: "1",
+                  locale: "br",
+                  toolbar_bg: "#111827",
+                  enable_publishing: false,
+                  hide_top_toolbar: false,
+                  hide_legend: true,
+                  save_image: false,
+                  show_popup_button: true,
+                  withdateranges: true,
+                  hide_side_toolbar: false,
+                  allow_symbol_change: true,
+                  studies: ["MASimple@tv-basicstudies"],
+                  overrides: {
+                    "mainSeriesProperties.candleStyle.upColor": "#0ECB81",
+                    "mainSeriesProperties.candleStyle.downColor": "#f23645",
+                    "mainSeriesProperties.candleStyle.borderUpColor": "#0ECB81",
+                    "mainSeriesProperties.candleStyle.borderDownColor": "#f23645",
+                    "mainSeriesProperties.candleStyle.wickUpColor": "#0ECB81",
+                    "mainSeriesProperties.candleStyle.wickDownColor": "#f23645",
+                    "paneProperties.background": "#111827",
+                    "paneProperties.vertGridProperties.color": "rgba(255, 255, 255, 0.05)",
+                    "paneProperties.horzGridProperties.color": "rgba(255, 255, 255, 0.05)",
+                  },
+                  onReady: () => {
+                    console.log('TradingView widget updated and ready');
+                    if (onReady) onReady();
+                  }
+                });
+              } catch (error) {
+                console.error('Error updating TradingView widget:', error);
+              }
+            }, 300);
+          } else {
+            // If not ready yet, try again in a moment
+            setTimeout(waitForWidget, 100);
+          }
+        };
+        
+        waitForWidget();
+      } catch (error) {
+        console.error('Error updating symbol in TradingView widget:', error);
+      }
     }
   }, [symbol, interval]);
 
