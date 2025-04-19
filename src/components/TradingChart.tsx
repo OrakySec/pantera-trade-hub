@@ -1,14 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTradingContext } from '@/contexts/TradingContext';
+import { useTradingViewWidget } from '@/hooks/useTradingViewWidget';
 import { Minus, Plus } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { toast } from 'sonner';
-
-declare global {
-  interface Window {
-    TradingView: any;
-  }
-}
 
 const TradingChart: React.FC = () => {
   const { 
@@ -25,67 +19,40 @@ const TradingChart: React.FC = () => {
     getTradeMarkers
   } = useTradingContext();
   
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetRef = useRef<any>(null);
   const [estimatedProfit, setEstimatedProfit] = useState(getEstimatedReturn(tradeAmount));
+  
+  const { addMarker } = useTradingViewWidget({
+    container_id: 'tradingview_chart',
+    symbol: selectedAsset.symbol,
+    interval: mapTimeframeToInterval(selectedTimeframe),
+    onReady: () => {
+      console.log('Chart ready, adding markers...');
+      addInitialMarkers();
+    }
+  });
 
   useEffect(() => {
     setEstimatedProfit(getEstimatedReturn(tradeAmount));
   }, [tradeAmount, getEstimatedReturn]);
 
-  useEffect(() => {
-    if (!document.getElementById('tradingview-widget-script')) {
-      const script = document.createElement('script');
-      script.id = 'tradingview-widget-script';
-      script.src = 'https://s3.tradingview.com/tv.js';
-      script.async = true;
-      script.onload = initializeWidget;
-      document.head.appendChild(script);
-    } else {
-      initializeWidget();
-    }
-
-    return () => {
-      if (widgetRef.current) {
-        try {
-          if (containerRef.current) {
-            containerRef.current.innerHTML = '';
-          }
-          widgetRef.current = null;
-        } catch (error) {
-          console.error('Erro ao limpar o widget TradingView:', error);
-        }
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (window.TradingView && widgetRef.current) {
-      initializeWidget();
-    }
-  }, [selectedAsset, selectedTimeframe]);
-  
-  const addMarkersToChart = () => {
-    if (!widgetRef.current || !widgetRef.current.iframe) return;
-    
+  const addInitialMarkers = () => {
     try {
-      console.log("Tentando adicionar marcadores ao gráfico");
-      
       const markers = getTradeMarkers();
       
-      if (markers.length === 0) {
-        console.log("Nenhum marcador para adicionar");
-        return;
-      }
-      
-      console.log("Marcadores para adicionar:", markers);
-      
       markers.forEach(trade => {
-        const direction = trade.direction === 'BUY' ? 'compra' : 'venda';
-        const status = trade.status === 'OPEN' ? 'em andamento' : 
-                      (trade.status === 'WON' ? 'ganhou' : 'perdeu');
-                      
+        const timestamp = new Date(trade.createdAt).getTime() / 1000;
+        addMarker(
+          timestamp,
+          trade.entryPrice,
+          trade.direction,
+          `${trade.direction} ${formatCurrency(trade.amount)}`
+        );
+        
         if (trade.chartMarker) {
+          const direction = trade.direction === 'BUY' ? 'compra' : 'venda';
+          const status = trade.status === 'OPEN' ? 'em andamento' : 
+                        (trade.status === 'WON' ? 'ganhou' : 'perdeu');
+                        
           toast.info(
             `Operação de ${direction.toUpperCase()} ${status.toUpperCase()} marcada no gráfico para ${trade.asset}`, 
             { position: 'bottom-right', duration: 2000 }
@@ -96,49 +63,6 @@ const TradingChart: React.FC = () => {
     } catch (error) {
       console.error('Erro ao adicionar marcadores ao gráfico:', error);
     }
-  };
-
-  const initializeWidget = () => {
-    if (!containerRef.current || !window.TradingView) return;
-
-    containerRef.current.innerHTML = '';
-    const interval = mapTimeframeToInterval(selectedTimeframe);
-
-    widgetRef.current = new window.TradingView.widget({
-      container_id: containerRef.current.id,
-      autosize: true,
-      symbol: selectedAsset.symbol.replace('/', ':'),
-      interval: interval,
-      timezone: "America/Sao_Paulo",
-      theme: "dark",
-      style: "1",
-      locale: "br",
-      toolbar_bg: "#111827",
-      enable_publishing: false,
-      hide_top_toolbar: false,
-      hide_legend: true,
-      save_image: false,
-      show_popup_button: true,
-      withdateranges: true,
-      hide_side_toolbar: false,
-      allow_symbol_change: true,
-      studies: ["MASimple@tv-basicstudies"],
-      overrides: {
-        "mainSeriesProperties.candleStyle.upColor": "#0ECB81",
-        "mainSeriesProperties.candleStyle.downColor": "#f23645",
-        "mainSeriesProperties.candleStyle.borderUpColor": "#0ECB81",
-        "mainSeriesProperties.candleStyle.borderDownColor": "#f23645",
-        "mainSeriesProperties.candleStyle.wickUpColor": "#0ECB81",
-        "mainSeriesProperties.candleStyle.wickDownColor": "#f23645",
-        "paneProperties.background": "#111827",
-        "paneProperties.vertGridProperties.color": "rgba(255, 255, 255, 0.05)",
-        "paneProperties.horzGridProperties.color": "rgba(255, 255, 255, 0.05)",
-      }
-    });
-
-    setTimeout(() => {
-      addMarkersToChart();
-    }, 2000);
   };
 
   const mapTimeframeToInterval = (timeframe: string): string => {
@@ -175,14 +99,14 @@ const TradingChart: React.FC = () => {
   const handleTrade = async (direction: 'BUY' | 'SELL') => {
     const success = await placeTrade(direction);
     if (success) {
-      setTimeout(addMarkersToChart, 500);
+      setTimeout(addInitialMarkers, 500);
     }
   };
 
   return (
     <div className="flex h-full">
       <div className="flex-grow bg-[#111827] border-none overflow-hidden h-full flex flex-col relative">
-        <div className="flex-1" id="tradingview_chart" ref={containerRef}></div>
+        <div className="flex-1" id="tradingview_chart"></div>
       </div>
       
       <div className="w-80 bg-[#1a1f2c] p-4 flex flex-col space-y-4">
